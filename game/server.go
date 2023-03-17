@@ -1,12 +1,30 @@
 package game
 
 import (
+	"github.com/BenStokmans/reversi-server/snowflake"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/types/known/anypb"
 	"net"
+	"sync"
 )
 
+type MessageHandler func(msg *anypb.Any, client *Client) error
+
 type Server struct {
-	clients []*Client
+	clients    map[snowflake.Snowflake]*Client
+	clientsMut sync.Mutex
+	games      map[snowflake.Snowflake]*Game
+	gamesMut   sync.Mutex
+
+	messageHandleFunc MessageHandler
+}
+
+func NewServer(handler MessageHandler) Server {
+	return Server{
+		clients:           make(map[snowflake.Snowflake]*Client),
+		games:             make(map[snowflake.Snowflake]*Game),
+		messageHandleFunc: handler,
+	}
 }
 
 func (g *Server) Start() {
@@ -39,7 +57,10 @@ func (g *Server) handleNewConnection(conn net.Conn) {
 	}
 	logrus.Infof("new connection from %v", conn.RemoteAddr())
 
-	client := NewClient(conn, g)
+	client := NewClient(conn, g, g.messageHandleFunc)
 	client.Start()
-	g.clients = append(g.clients, &client)
+
+	g.clientsMut.Lock()
+	g.clients[client.id] = &client
+	g.clientsMut.Unlock()
 }

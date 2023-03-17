@@ -1,12 +1,23 @@
 package handlers
 
-import "google.golang.org/protobuf/types/known/anypb"
+import (
+	"github.com/BenStokmans/reversi-server/game"
+	"google.golang.org/protobuf/types/known/anypb"
+)
 
-func HandleMessage(msg *anypb.Any) error {
-	switch msg.MessageName() {
-	case "reversi.CreateGame":
-		return HandleCreateGame(msg)
-	default:
+type messageHandler func(msg *anypb.Any, client *game.Client) error
+
+var handlers = map[string]messageHandler{
+	"reversi.CreateGame": handleCreateGame,
+	"reversi.JoinGame":   handleJoinGame,
+	"reversi.PlayMove":   handlePlayMove,
+	"reversi.LeaveGame":  handleLeaveGame,
+}
+
+func HandleMessage(msg *anypb.Any, client *game.Client) error {
+	handler, ok := handlers[msg.TypeUrl]
+	if !ok {
 		return nil
 	}
+	return handler(msg, client)
 }

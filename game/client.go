@@ -1,7 +1,6 @@
 package game
 
 import (
-	"github.com/BenStokmans/reversi-server/game/handlers"
 	"github.com/BenStokmans/reversi-server/snowflake"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
@@ -11,13 +10,18 @@ import (
 )
 
 type Client struct {
-	id   snowflake.Snowflake
-	game *Game
+	id    snowflake.Snowflake
+	State struct {
+		Username string
+		Game     *Game
+	}
 
 	owner  *Server
 	conn   net.Conn
 	sendCh chan *anypb.Any
 	recvCh chan *anypb.Any
+
+	messageHandleFunc MessageHandler
 
 	closed  bool
 	closeCh chan struct{}
@@ -25,12 +29,13 @@ type Client struct {
 	lastHeartbeat time.Time
 }
 
-func NewClient(conn net.Conn, owner *Server) Client {
+func NewClient(conn net.Conn, owner *Server, handler MessageHandler) Client {
 	c := Client{
-		id:            snowflake.Next(),
-		owner:         owner,
-		conn:          conn,
-		lastHeartbeat: time.Now(),
+		id:                snowflake.Next(),
+		owner:             owner,
+		conn:              conn,
+		lastHeartbeat:     time.Now(),
+		messageHandleFunc: handler,
 	}
 	c.sendCh = make(chan *anypb.Any)
 	c.recvCh = make(chan *anypb.Any)
@@ -79,13 +84,14 @@ func (c *Client) handleLoop() {
 	for {
 		select {
 		case data := <-c.recvCh:
-			err := handlers.HandleMessage(data)
-			if err != nil {
-				logrus.Debug(err)
-				continue
-			}
 			if data.MessageIs(&Heartbeat{}) {
 				c.lastHeartbeat = time.Now()
+				continue
+			}
+			err := c.messageHandleFunc(data, c)
+			if err != nil {
+				logrus.Error(err)
+				continue
 			}
 		case <-c.closeCh:
 			return
@@ -140,12 +146,14 @@ func (c *Client) Close() {
 	}
 	logrus.Infof("closing connection: %v", c.conn.RemoteAddr())
 	_ = c.conn.Close()
-	// remove client from owner connection
-	for i, client := range c.owner.clients {
-		if client == c {
-			c.owner.clients = append(c.owner.clients[:i], c.owner.clients[i+1:]...)
-		}
+	// check if client is in any games
+	if c.State.Game != nil {
+		// remove client from game
+		c.State.Game.RemovePlayer(c)
 	}
+	// remove client from owner connection
+	delete(c.owner.clients, c.id)
+
 	c.closed = true
 	// tell other goroutines to close
 	c.closeCh <- struct{}{}
