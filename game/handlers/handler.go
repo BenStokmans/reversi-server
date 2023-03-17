@@ -15,7 +15,7 @@ var handlers = map[string]messageHandler{
 }
 
 func HandleMessage(msg *anypb.Any, client *game.Client) error {
-	handler, ok := handlers[msg.TypeUrl]
+	handler, ok := handlers[string(msg.MessageName())]
 	if !ok {
 		return nil
 	}

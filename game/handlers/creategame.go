@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/BenStokmans/reversi-server/game"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 	"math/rand"
@@ -52,5 +53,6 @@ func handleCreateGame(msg *anypb.Any, client *game.Client) error {
 	resp.GameId = int64(client.State.Game.Id)
 
 	client.Send(resp)
+	logrus.Debugf("Created game %d", client.State.Game.Id)
 	return nil
 }
