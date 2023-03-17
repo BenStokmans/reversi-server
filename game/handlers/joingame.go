@@ -5,6 +5,7 @@ import (
 	"github.com/BenStokmans/reversi-server/snowflake"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+	"time"
 )
 
 func handleJoinGame(msg *anypb.Any, client *game.Client) error {
@@ -31,7 +32,14 @@ func handleJoinGame(msg *anypb.Any, client *game.Client) error {
 	}
 	resp.Color = color
 	client.Send(resp)
-	client.State.Game.Start()
+
+	// wait for a short time to allow the player to join process to complete
+	time.Sleep(5 * time.Millisecond)
+
+	err = client.State.Game.Start()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

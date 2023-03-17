@@ -30,6 +30,7 @@ func NewGame(c *Client) (*Game, error) {
 		owner: c.owner,
 		Id:    snowflake.Next(),
 		state: board.NewBoard(),
+		Turn:  Color_BLACK,
 	}
 	g.owner.games[g.Id] = g
 
@@ -116,10 +117,10 @@ func (g *Game) Move(c *Client, move *PlayMove) error {
 		gameMove.Pass = true
 	}
 
-	if g.white != nil {
+	if g.white != c {
 		g.white.Send(gameMove)
 	}
-	if g.black != nil {
+	if g.black != c {
 		g.black.Send(gameMove)
 	}
 	if g.state.GameOver() {

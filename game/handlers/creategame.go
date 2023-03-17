@@ -32,18 +32,17 @@ func handleCreateGame(msg *anypb.Any, client *game.Client) error {
 	}
 	client.State.Username = createGame.PlayerName
 
-	var color game.Color
-	if createGame.Color == nil {
+	if createGame.Color == game.Color_RANDOM {
 		if rand.Intn(2) == 0 {
-			color = game.Color_WHITE
+			resp.Color = game.Color_WHITE
 		} else {
-			color = game.Color_BLACK
+			resp.Color = game.Color_BLACK
 		}
 	} else {
-		color = *createGame.Color
+		resp.Color = createGame.Color
 	}
 
-	err = client.State.Game.AddPlayer(client, color)
+	err = client.State.Game.AddPlayer(client, resp.Color)
 	if err != nil {
 		errMsg := err.Error()
 		resp.Error = &errMsg

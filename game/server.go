@@ -4,8 +4,10 @@ import (
 	"github.com/BenStokmans/reversi-server/snowflake"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/anypb"
+	"math/rand"
 	"net"
 	"sync"
+	"time"
 )
 
 type MessageHandler func(msg *anypb.Any, client *Client) error
@@ -28,6 +30,7 @@ func NewServer(handler MessageHandler) Server {
 }
 
 func (g *Server) Start() {
+	rand.Seed(time.Now().UnixMilli())
 	l, err := net.Listen("tcp", ":8080")
 	if err != nil {
 		logrus.Fatal(err)

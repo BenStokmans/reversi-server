@@ -8,7 +8,10 @@ type Board struct {
 }
 
 func NewBoard() *Board {
-	return &Board{}
+	return &Board{
+		player:   0x0000001008000000,
+		opponent: 0x0000000810000000,
+	}
 }
 
 func (b *Board) Move(x, y uint8) error {

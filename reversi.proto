@@ -1,11 +1,12 @@
 syntax = "proto3";
 package reversi;
 
-option go_package = "../reversi-server/handler";
+option go_package = "../reversi-server/game";
 
 enum Color {
-  BLACK = 0;
-  WHITE = 1;
+  RANDOM = 0;
+  BLACK = 1;
+  WHITE = 2;
 }
 
 message Heartbeat { }
@@ -16,7 +17,7 @@ message Connected {
 
 message CreateGame {
   string player_name = 1;
-  optional Color color = 2;
+  Color color = 2;
 }
 
 message CreateGameResponse {
@@ -59,6 +60,6 @@ message PlayMoveResponse {
 }
 
 message GameEnded {
-  optional Color winner = 1;
+  Color winner = 1;
   optional string special_reason = 2;
 }
